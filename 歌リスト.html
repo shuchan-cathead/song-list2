@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>カスタマイズ可能な歌のリスト</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px 20px 130px;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      transition: background-image 0.3s ease;
+      color: #000;
+      min-height: 100vh;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+
+    button {
+      padding: 4px 8px;
+      font-size: 12px;
+      margin: 2px;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    input[type="color"],
+    input[type="range"] {
+      padding: 3px;
+      font-size: 12px;
+      margin: 3px 3px 3px 0;
+      max-width: 140px;
+    }
+
+    .settings {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      border-top: 1px solid #ccc;
+      padding: 8px 10px;
+      font-size: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .settings.hidden {
+      display: none;
+    }
+
+    .settings-toggle {
+      position: fixed;
+      bottom: 135px;
+      right: 10px;
+      z-index: 1001;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      table, th, td {
+        font-size: 14px;
+      }
+
+      .settings {
+        font-size: 10px;
+        padding: 6px;
+        gap: 4px;
+      }
+
+      input, button {
+        font-size: 10px;
+        max-width: 100px;
+      }
+
+      .settings-toggle {
+        font-size: 12px;
+        padding: 4px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="pageTitle">🎶 歌のリスト（曲名 + アーティスト名）</h1>
+
+  <table id="songTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">曲名 ▲▼</th>
+        <th onclick="sortTable(1)">アーティスト名 ▲▼</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <button class="settings-toggle" onclick="toggleSettings()">⚙️ 設定</button>
+
+  <div class="settings" id="settingsPanel">
+    <label>タイトル：</label>
+    <input type="text" id="pageTitleInput" placeholder="タイトル" oninput="updateTitle()">
+
+    <label>背景URL：</label>
+    <input type="text" id="bgUrlInput" placeholder="画像URL" oninput="updateBackgroundFromUrl()">
+
+    <label>画像：</label>
+    <input type="file" id="bgFileInput" accept="image/*" onchange="uploadBackgroundImage()">
+
+    <button onclick="resetBackground()">リセット</button>
+
+    <label>色：</label>
+    <input type="color" id="textColorInput" value="#000000" onchange="updateTextColor()">
+
+    <label>透明度：</label>
+    <input type="range" id="bgOpacityInput" min="0" max="100" value="100" oninput="updateBackgroundOpacity()">
+
+    <input type="text" id="newTitle" placeholder="曲名">
+    <input type="text" id="newArtist" placeholder="アーティスト">
+    <button onclick="addSong()">追加</button>
+  </div>
+
+  <script>
+    let currentSortColumn = null;
+    let sortAscending = true;
+
+    window.onload = function () {
+      // 復元処理
+      const savedBackground = localStorage.getItem("backgroundImage");
+      if (savedBackground) document.body.style.backgroundImage = `url('${savedBackground}')`;
+
+      const savedTextColor = localStorage.getItem("textColor");
+      if (savedTextColor) {
+        document.body.style.color = savedTextColor;
+        document.getElementById("textColorInput").value = savedTextColor;
+      }
+
+      const savedOpacity = localStorage.getItem("bgOpacity");
+      if (savedOpacity !== null) {
+        document.getElementById("bgOpacityInput").value = savedOpacity;
+        updateBackgroundOpacity(savedOpacity);
+      }
+
+      const savedTitle = localStorage.getItem("pageTitle");
+      if (savedTitle) {
+        document.getElementById("pageTitleInput").value = savedTitle;
+        document.getElementById("pageTitle").textContent = savedTitle;
+      }
+
+      const savedSongs = JSON.parse(localStorage.getItem("songList") || "[]");
+      savedSongs.forEach(song => addSongToTable(song.title, song.artist));
+    };
+
+    function toggleSettings() {
+      document.getElementById("settingsPanel").classList.toggle("hidden");
+    }
+
+    function updateTitle() {
+      const newTitle = document.getElementById("pageTitleInput").value;
+      document.getElementById("pageTitle").textContent = newTitle || "🎶 歌のリスト（曲名 + アーティスト名）";
+      localStorage.setItem("pageTitle", newTitle);
+    }
+
+    function updateBackgroundFromUrl() {
+      const url = document.getElementById("bgUrlInput").value.trim();
+      document.body.style.backgroundImage = url ? `url('${url}')` : "none";
+      url ? localStorage.setItem("backgroundImage", url) : localStorage.removeItem("backgroundImage");
+    }
+
+    function uploadBackgroundImage() {
+      const file = document.getElementById("bgFileInput").files[0];
+      if (file && file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const imageData = e.target.result;
+          document.body.style.backgroundImage = `url('${imageData}')`;
+          localStorage.setItem("backgroundImage", imageData);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert("画像ファイルを選択してください。");
+      }
+    }
+
+    function resetBackground() {
+      document.body.style.backgroundImage = "none";
+      localStorage.removeItem("backgroundImage");
+      document.getElementById("bgUrlInput").value = "";
+      document.getElementById("bgFileInput").value = "";
+      updateBackgroundOpacity(100);
+    }
+
+    function updateTextColor() {
+      const color = document.getElementById("textColorInput").value;
+      document.body.style.color = color;
+      localStorage.setItem("textColor", color);
+    }
+
+    function updateBackgroundOpacity(value) {
+      const opacity = value !== undefined ? value : document.getElementById("bgOpacityInput").value;
+      document.body.style.backgroundColor = `rgba(255,255,255,${1 - opacity / 100})`;
+      localStorage.setItem("bgOpacity", opacity);
+    }
+
+    function sortTable(columnIndex) {
+      const tbody = document.getElementById("songTable").tBodies[0];
+      const rows = Array.from(tbody.rows);
+
+      sortAscending = currentSortColumn === columnIndex ? !sortAscending : true;
+      currentSortColumn = columnIndex;
+
+      rows.sort((a, b) => {
+        const textA = a.cells[columnIndex].textContent;
+        const textB = b.cells[columnIndex].textContent;
+        return sortAscending
+          ? textA.localeCompare(textB, 'ja')
+          : textB.localeCompare(textA, 'ja');
+      });
+
+      rows.forEach(row => tbody.appendChild(row));
+    }
+
+    function addSong() {
+      const title = document.getElementById("newTitle").value.trim();
+      const artist = document.getElementById("newArtist").value.trim();
+      if (!title || !artist) return alert("曲名とアーティスト名を入力してください");
+
+      addSongToTable(title, artist);
+      saveSongList();
+
+      document.getElementById("newTitle").value = "";
+      document.getElementById("newArtist").value = "";
+    }
+
+    function addSongToTable(title, artist) {
+      const tbody = document.getElementById("songTable").tBodies[0];
+      const newRow = tbody.insertRow();
+      newRow.innerHTML = `
+        <td>${title}</td>
+        <td>${artist}</td>
+        <td>
+          <button onclick="editRow(this)">編集</button>
+          <button onclick="deleteRow(this)">削除</button>
+        </td>
+      `;
+    }
+
+    function saveSongList() {
+      const tbody = document.getElementById("songTable").tBodies[0];
+      const songs = Array.from(tbody.rows).map(row => ({
+        title: row.cells[0].textContent,
+        artist: row.cells[1].textContent
+      }));
+      localStorage.setItem("songList", JSON.stringify(songs));
+    }
+
+    function deleteRow(btn) {
+      btn.closest("tr").remove();
+      saveSongList();
+    }
+
+    function editRow(btn) {
+      const row = btn.closest("tr");
+      const newTitle = prompt("新しい曲名：", row.cells[0].textContent);
+      const newArtist = prompt("新しいアーティスト名：", row.cells[1].textContent);
+      if (newTitle && newArtist) {
+        row.cells[0].textContent = newTitle.trim();
+        row.cells[1].textContent = newArtist.trim();
+        saveSongList();
+      }
+    }
+  </script>
+
+</body>
+</html>
