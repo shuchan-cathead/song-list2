@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>カスタマイズ可能な歌のリスト</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>🎶 歌のリスト</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,44 +11,26 @@
       background-repeat: no-repeat;
       background-position: center;
       transition: background-image 0.3s ease;
+      color: #000;
       min-height: 100vh;
     }
 
-    .settings-toggle {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      z-index: 1000;
-    }
-
     .settings {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
       background: rgba(255, 255, 255, 0.9);
       padding: 10px;
-      border-top: 1px solid #ccc;
+      border-radius: 5px;
       font-size: 14px;
-      display: none;
     }
 
-    .settings input[type="text"],
-    .settings input[type="number"],
-    .settings input[type="file"],
-    .settings input[type="color"] {
+    input[type="text"] {
       padding: 5px;
-      font-size: 12px;
-      margin: 3px 3px 3px 0;
+      font-size: 14px;
+      margin: 5px 5px 5px 0;
     }
 
-    .settings button {
-      padding: 4px 8px;
-      font-size: 12px;
-      margin: 3px;
-    }
-
-    h1 {
-      margin-top: 10px;
+    button {
+      padding: 5px 10px;
+      margin: 2px;
     }
 
     table {
@@ -61,7 +42,7 @@
 
     th, td {
       border: 1px solid #ccc;
-      padding: 6px;
+      padding: 8px;
       text-align: left;
     }
 
@@ -70,232 +51,146 @@
       cursor: pointer;
     }
 
-    @media (max-width: 600px) {
-      table, th, td {
-        font-size: 12px;
-      }
+    .pagination {
+      margin-top: 10px;
+    }
 
-      .settings {
-        font-size: 12px;
-      }
-
-      .settings input, .settings button {
-        font-size: 11px;
-      }
+    .pagination button {
+      margin: 0 5px;
     }
   </style>
 </head>
 <body>
 
-  <button class="settings-toggle" onclick="toggleSettings()">⚙️ 設定</button>
+  <h1 id="pageTitle">🎶 歌のリスト</h1>
 
-  <div class="settings" id="settingsPanel">
-    <div>
-      <label>ページタイトル：</label>
-      <input type="text" id="pageTitleInput" oninput="updateTitle()">
-      <button onclick="resetTitle()">リセット</button>
-    </div>
-
-    <div>
-      <label>背景画像URL：</label>
-      <input type="text" id="bgUrlInput" oninput="updateBackground()">
-      <input type="file" id="bgFileInput" accept="image/*" onchange="uploadBackground(event)">
-      <button onclick="resetBackground()">リセット</button>
-    </div>
-
-    <div>
-      <label>文字色：</label>
-      <input type="color" id="fontColorInput" onchange="updateFontColor()">
-      <label>背景透明度：</label>
-      <input type="number" id="bgOpacityInput" min="0" max="1" step="0.1" onchange="updateBackgroundOpacity()">
-    </div>
-
-    <div>
-      <input type="text" id="newTitle" placeholder="曲名">
-      <input type="text" id="newArtist" placeholder="アーティスト名">
-      <button onclick="addSong()">追加</button>
-      <button onclick="saveSongList()">保存</button>
-      <button onclick="loadSongList()">復元</button>
-    </div>
+  <div class="settings">
+    <label>ページタイトル：</label>
+    <input type="text" id="pageTitleInput" oninput="updateTitle()" placeholder="タイトルを入力">
+    <br>
+    <label>曲名：</label>
+    <input type="text" id="newTitle" placeholder="曲名">
+    <label>アーティスト：</label>
+    <input type="text" id="newArtist" placeholder="アーティスト名">
+    <button onclick="addSong()">追加</button>
   </div>
-
-  <h1 id="pageTitle">🎶 歌のリスト（曲名 + アーティスト名）</h1>
 
   <table id="songTable">
     <thead>
       <tr>
-        <th onclick="sortTable(0)">曲名 ▲▼</th>
-        <th onclick="sortTable(1)">アーティスト名 ▲▼</th>
+        <th>#</th>
+        <th>曲名</th>
+        <th>アーティスト</th>
         <th>操作</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 
+  <div class="pagination">
+    <button onclick="prevPage()">⏮ 前へ</button>
+    <span id="pageInfo"></span>
+    <button onclick="nextPage()">次へ ⏭</button>
+  </div>
+
   <script>
-    let currentSortColumn = null;
-    let sortAscending = true;
+    const songs = JSON.parse(localStorage.getItem("songList") || "[]");
+    const pageSize = 20;
+    let currentPage = 1;
 
-    function sortTable(columnIndex) {
-      const table = document.getElementById("songTable").tBodies[0];
-      const rows = Array.from(table.rows);
-      sortAscending = (currentSortColumn === columnIndex) ? !sortAscending : true;
-      currentSortColumn = columnIndex;
-
-      rows.sort((a, b) => {
-        const aText = a.cells[columnIndex].textContent;
-        const bText = b.cells[columnIndex].textContent;
-        return sortAscending ? aText.localeCompare(bText, 'ja') : bText.localeCompare(aText, 'ja');
-      });
-
-      rows.forEach(row => table.appendChild(row));
+    function updateTitle() {
+      const newTitle = document.getElementById("pageTitleInput").value.trim();
+      document.getElementById("pageTitle").textContent = newTitle || "🎶 歌のリスト";
     }
 
     function addSong() {
-      const title = document.getElementById("newTitle").value.trim();
-      const artist = document.getElementById("newArtist").value.trim();
+      const titleInput = document.getElementById("newTitle");
+      const artistInput = document.getElementById("newArtist");
+      const title = titleInput.value.trim();
+      const artist = artistInput.value.trim();
+
       if (!title || !artist) return alert("曲名とアーティスト名を入力してください");
 
-      const table = document.getElementById("songTable").tBodies[0];
-      const row = table.insertRow();
-      row.innerHTML = `
-        <td>${title}</td>
-        <td>${artist}</td>
-        <td>
-          <button onclick="editRow(this)">編集</button>
-          <button onclick="deleteRow(this)">削除</button>
-        </td>
-      `;
-
-      document.getElementById("newTitle").value = "";
-      document.getElementById("newArtist").value = "";
-
-      if (table.rows.length >= 20) {
-        alert("曲が20曲に達しました。ページを更新します。");
-        location.reload();
-      }
+      songs.push({ title, artist });
+      saveSongs();
+      titleInput.value = "";
+      artistInput.value = "";
+      renderTable();
     }
 
-    function deleteRow(btn) {
-      btn.closest("tr").remove();
-    }
-
-    function editRow(btn) {
-      const row = btn.closest("tr");
-      const newTitle = prompt("新しい曲名を入力：", row.cells[0].textContent);
-      const newArtist = prompt("新しいアーティスト名を入力：", row.cells[1].textContent);
+    function editSong(index) {
+      const song = songs[index];
+      const newTitle = prompt("新しい曲名：", song.title);
+      const newArtist = prompt("新しいアーティスト名：", song.artist);
       if (newTitle && newArtist) {
-        row.cells[0].textContent = newTitle.trim();
-        row.cells[1].textContent = newArtist.trim();
+        songs[index] = { title: newTitle.trim(), artist: newArtist.trim() };
+        saveSongs();
+        renderTable();
       }
     }
 
-    function updateTitle() {
-      const title = document.getElementById("pageTitleInput").value;
-      document.getElementById("pageTitle").textContent = title || "🎶 歌のリスト（曲名 + アーティスト名）";
-      localStorage.setItem("pageTitle", title);
+    function deleteSong(index) {
+      if (confirm("この曲を削除しますか？")) {
+        songs.splice(index, 1);
+        saveSongs();
+        renderTable();
+      }
     }
 
-    function resetTitle() {
-      document.getElementById("pageTitleInput").value = "";
-      updateTitle();
+    function saveSongs() {
+      localStorage.setItem("songList", JSON.stringify(songs));
     }
 
-    function updateBackground() {
-      const url = document.getElementById("bgUrlInput").value.trim();
-      document.body.style.backgroundImage = url ? `url('${url}')` : "none";
-      localStorage.setItem("backgroundUrl", url);
-    }
+    function renderTable() {
+      const tbody = document.querySelector("#songTable tbody");
+      tbody.innerHTML = "";
 
-    function uploadBackground(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = e => {
-        const dataURL = e.target.result;
-        document.body.style.backgroundImage = `url('${dataURL}')`;
-        localStorage.setItem("backgroundUrl", dataURL);
-      };
-      reader.readAsDataURL(file);
-    }
+      const start = (currentPage - 1) * pageSize;
+      const pageSongs = songs.slice(start, start + pageSize);
 
-    function resetBackground() {
-      document.getElementById("bgUrlInput").value = "";
-      document.getElementById("bgFileInput").value = "";
-      document.body.style.backgroundImage = "none";
-      localStorage.removeItem("backgroundUrl");
-    }
-
-    function updateFontColor() {
-      const color = document.getElementById("fontColorInput").value;
-      document.body.style.color = color;
-      localStorage.setItem("fontColor", color);
-    }
-
-    function updateBackgroundOpacity() {
-      const opacity = parseFloat(document.getElementById("bgOpacityInput").value);
-      document.querySelector("table").style.backgroundColor = `rgba(255,255,255,${opacity})`;
-      localStorage.setItem("bgOpacity", opacity);
-    }
-
-    function saveSongList() {
-      const table = document.getElementById("songTable").tBodies[0];
-      const data = Array.from(table.rows).map(row => [
-        row.cells[0].textContent,
-        row.cells[1].textContent
-      ]);
-      localStorage.setItem("songList", JSON.stringify(data));
-      alert("曲リストを保存しました。");
-    }
-
-    function loadSongList() {
-      const data = JSON.parse(localStorage.getItem("songList") || "[]");
-      const table = document.getElementById("songTable").tBodies[0];
-      table.innerHTML = "";
-      data.forEach(([title, artist]) => {
-        const row = table.insertRow();
-        row.innerHTML = `
-          <td>${title}</td>
-          <td>${artist}</td>
+      pageSongs.forEach((song, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${start + i + 1}</td>
+          <td>${song.title}</td>
+          <td>${song.artist}</td>
           <td>
-            <button onclick="editRow(this)">編集</button>
-            <button onclick="deleteRow(this)">削除</button>
+            <button onclick="editSong(${start + i})">編集</button>
+            <button onclick="deleteSong(${start + i})">削除</button>
           </td>
         `;
+        tbody.appendChild(tr);
       });
+
+      updatePageInfo();
     }
 
-    function toggleSettings() {
-      const panel = document.getElementById("settingsPanel");
-      panel.style.display = (panel.style.display === "none" || panel.style.display === "") ? "block" : "none";
+    function updatePageInfo() {
+      const totalPages = Math.ceil(songs.length / pageSize) || 1;
+      currentPage = Math.min(currentPage, totalPages);
+      document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${totalPages}`;
     }
 
-    // ページ読み込み時に設定を復元
+    function nextPage() {
+      const totalPages = Math.ceil(songs.length / pageSize);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderTable();
+      }
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+      }
+    }
+
+    // 初期描画
     window.onload = () => {
-      document.getElementById("pageTitleInput").value = localStorage.getItem("pageTitle") || "";
+      renderTable();
       updateTitle();
-
-      const bgUrl = localStorage.getItem("backgroundUrl");
-      if (bgUrl) {
-        document.getElementById("bgUrlInput").value = bgUrl.startsWith("data:") ? "" : bgUrl;
-        document.body.style.backgroundImage = `url('${bgUrl}')`;
-      }
-
-      const fontColor = localStorage.getItem("fontColor");
-      if (fontColor) {
-        document.body.style.color = fontColor;
-        document.getElementById("fontColorInput").value = fontColor;
-      }
-
-      const bgOpacity = localStorage.getItem("bgOpacity");
-      if (bgOpacity) {
-        document.querySelector("table").style.backgroundColor = `rgba(255,255,255,${bgOpacity})`;
-        document.getElementById("bgOpacityInput").value = bgOpacity;
-      }
-
-      loadSongList();
     };
   </script>
-
 </body>
 </html>
