@@ -80,6 +80,13 @@
   <button onclick="addSong()">追加</button>
 </div>
 
+<div>
+  <button onclick="loadSongs()">ローカル保存から復元</button>
+  <button onclick="exportSongs()">曲リストを書き出す</button>
+  <input type="file" id="importFile" accept="application/json">
+  <button onclick="importSongs()">曲リストを読み込む</button>
+</div>
+
 <table id="songTable">
   <thead>
     <tr>
@@ -114,62 +121,136 @@
 </div>
 
 <script>
-// 以下のJavaScriptコードに、背景や文字色などの設定復元・保存処理が含まれています
-// 既存のコードにこのまま統合すれば、すべて機能します
-function toggleSettings() {
-  const panel = document.getElementById("settingsPanel");
-  panel.style.display = (panel.style.display === "block") ? "none" : "block";
-}
-function updateTitle() {
-  document.getElementById("pageTitle").textContent = document.getElementById("pageTitleInput").value || "🎶 歌のリスト";
-}
-function updateBackground() {
-  document.body.style.backgroundImage = document.getElementById("bgUrlInput").value ? `url('${document.getElementById("bgUrlInput").value}')` : 'none';
-}
-function uploadBackground() {
-  const file = document.getElementById("bgUpload").files[0];
-  if (file) {
+  const pageSize = 20;
+  let songs = JSON.parse(localStorage.getItem("songList") || "[]");
+  let currentPage = 1, sortKey = null, sortAsc = true;
+  
+  function renderTable() {
+    let arr = [...songs];
+    if (sortKey) {
+      arr.sort((a, b) => sortAsc ? (a[sortKey] || '').localeCompare(b[sortKey] || '') : (b[sortKey] || '').localeCompare(a[sortKey] || ''));
+    }
+    const tbody = document.querySelector("#songTable tbody");
+    tbody.innerHTML = "";
+    const start = (currentPage - 1) * pageSize;
+    const pageArr = arr.slice(start, start + pageSize);
+    pageArr.forEach((song, i) => {
+      const tr = document.createElement("tr");
+      const urlBtn = song.url ? `<button onclick=\"openVideo('${song.url}')\">再生</button>` : "";
+      tr.innerHTML = `<td>${start + i + 1}</td><td>${song.title}</td><td>${song.artist}</td><td>${urlBtn}</td><td><button onclick=\"editSong(${songs.indexOf(song)})\">編集</button><button onclick=\"deleteSong(${songs.indexOf(song)})\">削除</button></td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${Math.max(Math.ceil(songs.length / pageSize), 1)}`;
+  }
+
+  function addSong() {
+    const title = document.getElementById("newTitle").value.trim();
+    const artist = document.getElementById("newArtist").value.trim();
+    const url = document.getElementById("newUrl").value.trim();
+    if (!title || !artist) return alert("曲名とアーティスト名を入力してください");
+    songs.push({ title, artist, url });
+    saveSongs();
+    document.getElementById("newTitle").value = "";
+    document.getElementById("newArtist").value = "";
+    document.getElementById("newUrl").value = "";
+    renderTable();
+  }
+
+  function editSong(i) {
+    const s = songs[i];
+    const t = prompt("曲名", s.title);
+    const a = prompt("アーティスト", s.artist);
+    const u = prompt("動画URL（空でも可）", s.url || "");
+    if (t && a !== null) {
+      songs[i] = { title: t.trim(), artist: a.trim(), url: u.trim() };
+      saveSongs();
+      renderTable();
+    }
+  }
+
+  function deleteSong(i) {
+    if (confirm("本当に削除しますか？")) {
+      songs.splice(i, 1);
+      saveSongs();
+      if (currentPage > Math.ceil(songs.length / pageSize)) currentPage--;
+      renderTable();
+    }
+  }
+
+  function sortBy(key) {
+    if (sortKey === key) sortAsc = !sortAsc;
+    else { sortKey = key; sortAsc = true; }
+    renderTable();
+  }
+  function nextPage() { if (currentPage < Math.ceil(songs.length / pageSize)) { currentPage++; renderTable(); } }
+  function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
+  function toggleSettings() { const p = document.getElementById("settingsPanel"); p.style.display = (p.style.display === "block" ? "none" : "block"); }
+  function updateTitle() { document.getElementById("pageTitle").textContent = document.getElementById("pageTitleInput").value || "🎶 歌のリスト"; }
+  function updateBackground() { document.body.style.backgroundImage = document.getElementById("bgUrlInput").value ? `url('${document.getElementById("bgUrlInput").value}')` : 'none'; }
+  function uploadBackground() {
+    const f = document.getElementById("bgUpload").files[0];
+    if (f) {
+      const r = new FileReader();
+      r.onload = e => { document.body.style.backgroundImage = `url('${e.target.result}')`; localStorage.setItem("bgImage", e.target.result); };
+      r.readAsDataURL(f);
+    }
+  }
+  function resetBackground() { document.body.style.backgroundImage = 'none'; document.getElementById("bgUrlInput").value = ''; localStorage.removeItem("bgImage"); }
+  function updateOpacity() { document.body.style.backgroundColor = `rgba(255,255,255,${1 - document.getElementById("bgOpacity").value})`; }
+  function updateTextColor() { document.body.style.color = document.getElementById("textColor").value; }
+  function saveSettings() {
+    localStorage.setItem("pageTitle", document.getElementById("pageTitleInput").value);
+    localStorage.setItem("textColor", document.getElementById("textColor").value);
+    localStorage.setItem("bgOpacity", document.getElementById("bgOpacity").value);
+    localStorage.setItem("bgUrl", document.getElementById("bgUrlInput").value);
+  }
+  function loadSettings() {
+    document.getElementById("pageTitleInput").value = localStorage.getItem("pageTitle") || '';
+    updateTitle();
+    document.getElementById("textColor").value = localStorage.getItem("textColor") || '#000000';
+    updateTextColor();
+    document.getElementById("bgOpacity").value = localStorage.getItem("bgOpacity") || 0.9;
+    updateOpacity();
+    document.getElementById("bgUrlInput").value = localStorage.getItem("bgUrl") || '';
+    updateBackground();
+    const img = localStorage.getItem("bgImage");
+    if (img) document.body.style.backgroundImage = `url('${img}')`;
+  }
+  function saveSongs() { localStorage.setItem("songList", JSON.stringify(songs)); }
+  function loadSongs() {
+    songs = JSON.parse(localStorage.getItem("songList") || "[]");
+    if (currentPage > Math.ceil(songs.length / pageSize)) currentPage = 1;
+    renderTable();
+  }
+  function exportSongs() {
+    const blob = new Blob([JSON.stringify(songs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'songList.json';
+    a.click();
+  }
+  function importSongs() {
+    const fileInput = document.getElementById("importFile");
+    const file = fileInput.files[0];
+    if (!file) return alert("ファイルを選択してください");
     const reader = new FileReader();
     reader.onload = e => {
-      document.body.style.backgroundImage = `url('${e.target.result}')`;
-      localStorage.setItem("bgImage", e.target.result);
+      try {
+        const data = JSON.parse(e.target.result);
+        if (Array.isArray(data)) {
+          songs = data;
+          saveSongs();
+          renderTable();
+        } else alert("不正なファイル形式です");
+      } catch (err) { alert("読み込みに失敗しました"); }
     };
-    reader.readAsDataURL(file);
+    reader.readAsText(file);
   }
-}
-function resetBackground() {
-  document.body.style.backgroundImage = 'none';
-  document.getElementById("bgUrlInput").value = '';
-  localStorage.removeItem("bgImage");
-}
-function updateOpacity() {
-  document.body.style.backgroundColor = `rgba(255,255,255,${1 - document.getElementById("bgOpacity").value})`;
-}
-function updateTextColor() {
-  document.body.style.color = document.getElementById("textColor").value;
-}
-function saveSettings() {
-  localStorage.setItem("pageTitle", document.getElementById("pageTitleInput").value);
-  localStorage.setItem("textColor", document.getElementById("textColor").value);
-  localStorage.setItem("bgOpacity", document.getElementById("bgOpacity").value);
-  localStorage.setItem("bgUrl", document.getElementById("bgUrlInput").value);
-}
-function loadSettings() {
-  document.getElementById("pageTitleInput").value = localStorage.getItem("pageTitle") || '';
-  updateTitle();
-  document.getElementById("textColor").value = localStorage.getItem("textColor") || '#000000';
-  updateTextColor();
-  document.getElementById("bgOpacity").value = localStorage.getItem("bgOpacity") || 0.9;
-  updateOpacity();
-  document.getElementById("bgUrlInput").value = localStorage.getItem("bgUrl") || '';
-  updateBackground();
-  const img = localStorage.getItem("bgImage");
-  if (img) document.body.style.backgroundImage = `url('${img}')`;
-}
-window.onload = function () {
-  loadSettings();
-  // 他のloadSongsなどもここで呼び出し可
-};
+  function openVideo(url) {
+    window.open(url, '_blank', 'width=800,height=600');
+  }
+  window.onload = function () { loadSettings(); loadSongs(); renderTable(); };
 </script>
 
 </body>
