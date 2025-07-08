@@ -64,8 +64,30 @@
       margin:3px;
     }
 
+    #videoModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      border: 1px solid #ccc;
+      z-index: 2000;
+    }
+    #videoModal iframe {
+      width: 560px;
+      height: 315px;
+    }
+    #videoModalClose {
+      display: block;
+      text-align: right;
+      margin-top: 5px;
+    }
+
     @media(max-width:600px){
       body, table, th, td, input, button, .settings-panel { font-size: 12px; }
+      #videoModal iframe { width: 90vw; height: 50vw; }
     }
   </style>
 </head>
@@ -118,6 +140,12 @@
   <div><label>背景透明度：</label><input type="range" min="0" max="1" step="0.01" id="bgOpacity" value="0.9" oninput="updateOpacity()"></div>
   <div><label>文字色：</label><input type="color" id="textColor" value="#000000" onchange="updateTextColor()"></div>
   <div><button onclick="saveSettings()">設定保存</button><button onclick="loadSettings()">設定復元</button></div>
+</div>
+
+<!-- 動画モーダル -->
+<div id="videoModal">
+  <div id="videoContent"></div>
+  <div id="videoModalClose"><button onclick="closeVideo()">閉じる</button></div>
 </div>
 
 <script>
@@ -248,7 +276,22 @@
     reader.readAsText(file);
   }
   function openVideo(url) {
-    window.open(url, '_blank', 'width=800,height=600');
+    const modal = document.getElementById("videoModal");
+    const content = document.getElementById("videoContent");
+    let embedUrl = url;
+    if (url.includes("youtube.com/watch")) {
+      const videoId = url.split("v=")[1].split("&")[0];
+      embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    } else if (url.includes("youtu.be/")) {
+      const videoId = url.split("youtu.be/")[1];
+      embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    }
+    content.innerHTML = `<iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe>`;
+    modal.style.display = "block";
+  }
+  function closeVideo() {
+    document.getElementById("videoModal").style.display = "none";
+    document.getElementById("videoContent").innerHTML = "";
   }
   window.onload = function () { loadSettings(); loadSongs(); renderTable(); };
 </script>
