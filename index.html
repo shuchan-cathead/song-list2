@@ -59,23 +59,23 @@
       font-size:14px;
     }
 
-    .settings-panel input[type="text"],
-    .settings-panel input[type="range"],
-    .settings-panel input[type="color"],
-    .settings-panel input[type="file"] {
-      margin:3px;
+    #videoOverlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.7);
+      z-index: 2000;
     }
 
     #videoModal {
-      display: none;
       position: fixed;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       background: #fff;
       padding: 20px;
       border: 1px solid #ccc;
-      z-index: 2000;
+      z-index: 2001;
       max-width: 90vw;
     }
 
@@ -149,8 +149,10 @@
     <div><label>文字色：</label><input type="color" id="textColor" value="#000000" onchange="updateTextColor()"></div>
     <div><button onclick="saveSettings()">設定保存</button><button onclick="loadSettings()">設定復元</button></div>
     <div><button onclick="saveSongs()">曲リスト保存</button><button onclick="loadSongs()">曲リスト復元</button></div>
+    <div><label>ファイルから読み込み：</label><input type="file" id="importFile" accept=".json" onchange="importSongs(this)"></div>
   </div>
 
+  <div id="videoOverlay" onclick="closeVideo()"></div>
   <div id="videoModal">
     <div id="videoModalContent"></div>
     <div id="videoModalClose"><button onclick="closeVideo()">閉じる</button></div>
@@ -180,7 +182,7 @@ function renderTable() {
       <td>${start + i + 1}</td>
       <td>${song.title}</td>
       <td>${song.artist}</td>
-      <td>${song.url ? `<button onclick="playVideo('${song.url}')">▶ 再生</button>` : ""}</td>
+      <td>${song.url ? `<button onclick=\"playVideo('${song.url}')\">▶ 再生</button>` : ""}</td>
       <td><button onclick="editSong(${songs.indexOf(song)})">編集</button><button onclick="deleteSong(${songs.indexOf(song)})">削除</button></td>
     `;
     tbody.appendChild(tr);
@@ -227,8 +229,20 @@ function sortBy(key) {
   else { sortKey = key; sortAsc = true; }
   renderTable();
 }
-function nextPage() { if (currentPage < Math.ceil(songs.length / pageSize)) { currentPage++; renderTable(); } }
-function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
+function nextPage() {
+  if (currentPage < Math.ceil(songs.length / pageSize)) {
+    currentPage++;
+    renderTable();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    renderTable();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
 function toggleSettings() {
   const p = document.getElementById("settingsPanel");
   p.style.display = (p.style.display === "block" ? "none" : "block");
@@ -287,13 +301,37 @@ function loadSongs() {
   if (currentPage > Math.ceil(songs.length / pageSize)) currentPage = 1;
   renderTable();
 }
+function importSongs(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (Array.isArray(data)) {
+        songs = data;
+        saveSongs();
+        currentPage = 1;
+        renderTable();
+        alert("曲リストを復元しました。");
+      } else {
+        alert("不正な形式のファイルです（配列ではありません）");
+      }
+    } catch (err) {
+      alert("読み込みエラー：" + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
 function playVideo(url) {
   const embedUrl = url.includes("youtube.com") ? url.replace("watch?v=", "embed/") :
                    url.includes("youtu.be") ? "https://www.youtube.com/embed/" + url.split("/").pop() : url;
   document.getElementById("videoModalContent").innerHTML = `<iframe src="${embedUrl}" frameborder="0" allowfullscreen></iframe>`;
+  document.getElementById("videoOverlay").style.display = "block";
   document.getElementById("videoModal").style.display = "block";
 }
 function closeVideo() {
+  document.getElementById("videoOverlay").style.display = "none";
   document.getElementById("videoModal").style.display = "none";
   document.getElementById("videoModalContent").innerHTML = "";
 }
