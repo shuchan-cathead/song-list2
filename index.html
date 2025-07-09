@@ -24,7 +24,7 @@
       margin: 10px;
       font-family: 'Yomogi', cursive;
       font-size: 2em;
-      color: #e67aa3;
+      color: #4a90e2;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
     }
     .content {
@@ -39,19 +39,17 @@
       margin: 4px;
     }
     button {
-      background: #f28ab2;
+      background: #a0cfff;
       color: white;
       border: none;
-      border-radius: 20px;
-      padding: 6px 16px;
+      border-radius: 8px;
+      padding: 6px 12px;
       margin: 4px;
       font-weight: bold;
-      font-family: 'Nunito', sans-serif;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     button:hover {
-      background: #ffb3c6;
+      background: #cce6ff;
     }
     table {
       width: 100%;
@@ -68,27 +66,28 @@
       text-align: left;
     }
     th {
-      background-color: #ffe6ec;
+      background-color: #e6f2ff;
       cursor: pointer;
     }
-    .settings-toggle, .background-toggle, #backgroundBackButton {
-      position: fixed;
-      z-index: 1000;
-    }
     .settings-toggle {
+      position: fixed;
       bottom: 10px;
       right: 10px;
+      z-index: 1000;
     }
     .background-toggle {
+      position: fixed;
       top: 10px;
       right: 10px;
-      background: #ffe6ec;
+      background: #e6f2ff;
       border-radius: 8px;
+      z-index: 1001;
     }
-    #backgroundBackButton {
+    .back-button {
+      position: fixed;
       top: 10px;
-      left: 10px;
-      display: none;
+      right: 120px;
+      z-index: 1001;
     }
     .settings-panel {
       position: fixed;
@@ -97,7 +96,7 @@
       width: 100%;
       background: rgba(255, 255, 255, 0.95);
       padding: 10px;
-      border-top: 2px solid #f28ab2;
+      border-top: 2px solid #a0cfff;
       display: none;
       font-size: 14px;
       z-index: 999;
@@ -121,16 +120,6 @@
       border: none;
       background: #000;
     }
-    .background-only .content,
-    .background-only h1,
-    .background-only .settings-toggle,
-    .background-only .background-toggle,
-    .background-only .settings-panel {
-      display: none;
-    }
-    .background-only #backgroundBackButton {
-      display: block !important;
-    }
     @media(max-width:600px) {
       body, .settings-panel {
         font-size: 12px;
@@ -145,26 +134,17 @@
   </style>
 </head>
 <body>
-  <button class="background-toggle" onclick="toggleBackgroundOnly(event)">🖼️ 背景表示切替</button>
-  <div id="backgroundBackButton">
-    <button onclick="toggleBackgroundOnly(event)">🔙 戻る</button>
-  </div>
   <h1 id="pageTitle">🎶 歌のリスト</h1>
-  <div class="content">
+  <div class="background-toggle"><button onclick="toggleBackgroundOnly()">🖼 背景表示切替</button></div>
+  <div class="back-button" style="display:none"><button onclick="toggleBackgroundOnly()">🔙 戻る</button></div>
+  <div class="content" id="mainContent">
+    <!-- 曲リスト入力・表示部 -->
     <input type="text" id="newTitle" placeholder="曲名">
     <input type="text" id="newArtist" placeholder="アーティスト名">
-    <input type="text" id="newUrl" placeholder="動画URL（YouTubeなど）">
+    <input type="text" id="newURL" placeholder="動画URL（任意）">
     <button onclick="addSong()">追加</button>
     <table id="songTable">
-      <thead>
-        <tr>
-          <th onclick="sortBy('index')">#</th>
-          <th onclick="sortBy('title')">曲名 ▲▼</th>
-          <th onclick="sortBy('artist')">アーティスト名 ▲▼</th>
-          <th>動画</th>
-          <th>操作</th>
-        </tr>
-      </thead>
+      <thead><tr><th>#</th><th onclick="sortBy('title')">曲名</th><th onclick="sortBy('artist')">アーティスト</th><th>操作</th></tr></thead>
       <tbody></tbody>
     </table>
     <div class="pagination">
@@ -173,215 +153,80 @@
       <button onclick="nextPage()">次へ ⏭</button>
     </div>
   </div>
-  <div class="settings-toggle">
-    <button onclick="toggleSettings(event)">⚙️ 設定</button>
-  </div>
+  <div class="settings-toggle"><button onclick="toggleSettings()">⚙️ 設定</button></div>
   <div class="settings-panel" id="settingsPanel">
-    <div>
-      <label>ページタイトル：</label>
-      <input type="text" id="pageTitleInput" oninput="updateTitle()">
-    </div>
-    <div>
-      <label>背景画像URL：</label>
-      <input type="text" id="bgUrlInput" oninput="updateBackground()">
-      <label>またはアップロード：</label>
-      <input type="file" id="bgUpload" accept="image/*" onchange="uploadBackground()">
-      <button onclick="resetBackground()">リセット</button>
-    </div>
-    <div>
-      <label>文字色：</label>
-      <input type="color" id="textColor" value="#333333" onchange="updateTextColor()">
-    </div>
-    <div>
-      <label>曲リストのエクスポート：</label>
-      <button onclick="exportSongs()">📤 書き出す</button>
-    </div>
-    <div>
-      <label>曲リストのインポート：</label>
-      <label for="importFile" style="cursor:pointer; font-weight:bold;">📥 読み込む</label>
-      <input type="file" id="importFile" accept=".json" onchange="importSongs(event)" style="display:none;">
-    </div>
+    <div><label>ページタイトル：</label><input type="text" id="pageTitleInput" oninput="updateTitle()"></div>
+    <div><label>背景画像URL：</label><input type="text" id="bgUrlInput" oninput="updateBackground()"> またはアップロード：<input type="file" id="bgUpload" accept="image/*" onchange="uploadBackground()"><button onclick="resetBackground()">リセット</button></div>
+    <div><label>文字色：</label><input type="color" id="textColor" value="#000000" onchange="updateTextColor()"></div>
+    <div><label>曲リストのエクスポート：</label><button onclick="exportSongs()">📤 書き出す</button></div>
+    <div><label>曲リストのインポート：</label><input type="file" id="importFile" accept=".json"><button onclick="importSongs()">📥 読み込む</button></div>
   </div>
   <div class="popup-overlay" id="popup">
-    <iframe id="popupFrame" allowfullscreen></iframe>
+    <iframe id="videoFrame" allowfullscreen></iframe>
   </div>
-  <script>
-    let backgroundOnly = false;
-    const pageSize = 20;
-    let songs = JSON.parse(localStorage.getItem("songList") || "[]");
-    let currentPage = 1, sortKey = null, sortAsc = true;
-
-    function renderTable() {
-      let arr = [...songs];
-      if (sortKey) {
-        arr.sort((a, b) => sortAsc ? (a[sortKey] || '').localeCompare(b[sortKey] || '') : (b[sortKey] || '').localeCompare(a[sortKey] || ''));
-      }
-      const tbody = document.querySelector("#songTable tbody");
-      tbody.innerHTML = "";
-      const start = (currentPage - 1) * pageSize;
-      const pageArr = arr.slice(start, start + pageSize);
-      pageArr.forEach((song, i) => {
-        const tr = document.createElement("tr");
-        const videoButton = song.url ? `<button onclick="showVideo('${song.url}')">▶再生</button>` : "";
-        tr.innerHTML = `<td>${start + i + 1}</td><td>${song.title}</td><td>${song.artist}</td><td>${videoButton}</td><td><button onclick="editSong(${songs.indexOf(song)})">編集</button><button onclick="deleteSong(${songs.indexOf(song)})">削除</button></td>`;
-        tbody.appendChild(tr);
-      });
-      document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${Math.max(Math.ceil(songs.length / pageSize), 1)}`;
-    }
-
-    function addSong() {
-      const t = document.getElementById("newTitle").value.trim();
-      const a = document.getElementById("newArtist").value.trim();
-      const u = document.getElementById("newUrl").value.trim();
-      if (!t || !a) return alert("曲名とアーティスト名を入力してください");
-      songs.push({ title: t, artist: a, url: u });
-      localStorage.setItem("songList", JSON.stringify(songs));
-      document.getElementById("newTitle").value = "";
-      document.getElementById("newArtist").value = "";
-      document.getElementById("newUrl").value = "";
-      renderTable();
-    }
-
-    function editSong(i) {
-      const s = songs[i];
-      const t = prompt("曲名", s.title);
-      const a = prompt("アーティスト", s.artist);
-      const u = prompt("動画URL", s.url || "");
-      if (t && a !== null) {
-        songs[i] = { title: t.trim(), artist: a.trim(), url: u.trim() };
-        localStorage.setItem("songList", JSON.stringify(songs));
-        renderTable();
-      }
-    }
-
-    function deleteSong(i) {
-      if (confirm("本当に削除しますか？")) {
-        songs.splice(i, 1);
-        localStorage.setItem("songList", JSON.stringify(songs));
-        if (currentPage > Math.ceil(songs.length / pageSize)) currentPage--;
-        renderTable();
-      }
-    }
-
-    function sortBy(key) {
-      if (sortKey === key) sortAsc = !sortAsc;
-      else { sortKey = key; sortAsc = true; }
-      renderTable();
-    }
-
-    function nextPage() {
-      if (currentPage < Math.ceil(songs.length / pageSize)) {
-        currentPage++;
-        renderTable();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-
-    function prevPage() {
-      if (currentPage > 1) {
-        currentPage--;
-        renderTable();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
-
-    function toggleSettings(e) {
-      e.stopPropagation();
-      const p = document.getElementById("settingsPanel");
-      p.style.display = (p.style.display === "block" ? "none" : "block");
-    }
-
-    function toggleBackgroundOnly(e) {
-      e.stopPropagation();
-      const isNowBackgroundOnly = document.body.classList.toggle("background-only");
-      document.getElementById("backgroundBackButton").style.display = isNowBackgroundOnly ? "block" : "none";
-    }
-
-    function updateTitle() {
-      const title = document.getElementById("pageTitleInput").value || "🎶 歌のリスト";
-      document.getElementById("pageTitle").textContent = title;
-      localStorage.setItem("pageTitle", title);
-    }
-
-    function updateBackground() {
-      document.body.style.backgroundImage = document.getElementById("bgUrlInput").value ? `url('${document.getElementById("bgUrlInput").value}')` : 'none';
-    }
-
-    function uploadBackground() {
-      const f = document.getElementById("bgUpload").files[0];
-      if (f) {
-        const r = new FileReader();
-        r.onload = e => {
-          document.body.style.backgroundImage = `url('${e.target.result}')`;
-          localStorage.setItem("bgImage", e.target.result);
-        };
-        r.readAsDataURL(f);
-      }
-    }
-
-    function resetBackground() {
-      document.body.style.backgroundImage = 'none';
-      document.getElementById("bgUrlInput").value = '';
-      localStorage.removeItem("bgImage");
-    }
-
-    function updateTextColor() {
-      const color = document.getElementById("textColor").value;
-      document.body.style.color = color;
-      localStorage.setItem("textColor", color);
-    }
-
-    function exportSongs() {
-      const blob = new Blob([JSON.stringify(songs)], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "song_list.json";
-      a.click();
-    }
-
-    function importSongs(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          try {
-            songs = JSON.parse(e.target.result);
-            localStorage.setItem("songList", JSON.stringify(songs));
-            renderTable();
-          } catch {
-            alert("読み込みに失敗しました。");
-          }
-        };
-        reader.readAsText(file);
-      }
-    }
-
-    function showVideo(url) {
-      const popup = document.getElementById("popup");
-      const frame = document.getElementById("popupFrame");
-      frame.src = url;
-      popup.style.display = "flex";
-      popup.onclick = () => {
-        popup.style.display = "none";
-        frame.src = "";
-      };
-    }
-
-    window.onload = function () {
-      const savedTitle = localStorage.getItem("pageTitle");
-      if (savedTitle) {
-        document.getElementById("pageTitleInput").value = savedTitle;
-        updateTitle();
-      }
-      const textColor = localStorage.getItem("textColor");
-      if (textColor) {
-        document.getElementById("textColor").value = textColor;
-        updateTextColor();
-      }
-      const bg = localStorage.getItem("bgImage");
-      if (bg) document.body.style.backgroundImage = `url('${bg}')`;
-      renderTable();
-    }
-  </script>
+<script>
+let songs = JSON.parse(localStorage.getItem("songList") || "[]");
+let currentPage = 1, pageSize = 20, sortKey = '', sortAsc = true, showingBackgroundOnly = false;
+function renderTable(){
+  const tbody = document.querySelector("#songTable tbody");
+  tbody.innerHTML = "";
+  let arr = [...songs];
+  if(sortKey) arr.sort((a,b)=>(sortAsc?1:-1)*(a[sortKey]||'').localeCompare(b[sortKey]||''));
+  const start = (currentPage - 1) * pageSize;
+  const pageArr = arr.slice(start, start + pageSize);
+  pageArr.forEach((s,i)=>{
+    const tr = document.createElement("tr");
+    const urlButton = s.url ? `<button onclick="showVideo('${s.url}')">🎬 再生</button>` : '';
+    tr.innerHTML = `<td>${start+i+1}</td><td>${s.title}</td><td>${s.artist}</td><td><button onclick="editSong(${songs.indexOf(s)})">編集</button><button onclick="deleteSong(${songs.indexOf(s)})">削除</button> ${urlButton}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${Math.max(1, Math.ceil(songs.length / pageSize))}`;
+}
+function addSong(){
+  const title = document.getElementById("newTitle").value.trim();
+  const artist = document.getElementById("newArtist").value.trim();
+  const url = document.getElementById("newURL").value.trim();
+  if(!title || !artist) return alert("曲名とアーティスト名を入力してください。");
+  songs.push({ title, artist, url });
+  saveSongs();
+  document.getElementById("newTitle").value = "";
+  document.getElementById("newArtist").value = "";
+  document.getElementById("newURL").value = "";
+  renderTable();
+}
+function editSong(i){
+  const s = songs[i];
+  const title = prompt("曲名", s.title);
+  const artist = prompt("アーティスト", s.artist);
+  const url = prompt("動画URL", s.url || '');
+  if(title && artist){ songs[i] = { title, artist, url }; saveSongs(); renderTable(); }
+}
+function deleteSong(i){ if(confirm("削除しますか？")){ songs.splice(i,1); saveSongs(); renderTable(); } }
+function sortBy(key){ sortKey = key; sortAsc = !sortAsc; renderTable(); }
+function nextPage(){ if(currentPage < Math.ceil(songs.length / pageSize)){ currentPage++; renderTable(); window.scrollTo(0,0); } }
+function prevPage(){ if(currentPage > 1){ currentPage--; renderTable(); window.scrollTo(0,0); } }
+function saveSongs(){ localStorage.setItem("songList", JSON.stringify(songs)); }
+function exportSongs(){ const blob = new Blob([JSON.stringify(songs)], {type:"application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "songs.json"; a.click(); }
+function importSongs(){ const file = document.getElementById("importFile").files[0]; if(!file) return; const reader = new FileReader(); reader.onload = e => { try { songs = JSON.parse(e.target.result); saveSongs(); renderTable(); } catch(err) { alert("読み込みエラー"); } }; reader.readAsText(file); }
+function updateTitle(){ document.getElementById("pageTitle").textContent = document.getElementById("pageTitleInput").value || "🎶 歌のリスト"; }
+function updateBackground(){ const url = document.getElementById("bgUrlInput").value; document.body.style.backgroundImage = url ? `url('${url}')` : 'none'; localStorage.setItem("bgImageUrl", url); }
+function uploadBackground(){ const file = document.getElementById("bgUpload").files[0]; if(!file) return; const reader = new FileReader(); reader.onload = e => { document.body.style.backgroundImage = `url('${e.target.result}')`; localStorage.setItem("bgImage", e.target.result); }; reader.readAsDataURL(file); }
+function resetBackground(){ document.body.style.backgroundImage = 'none'; document.getElementById("bgUrlInput").value = ''; localStorage.removeItem("bgImage"); localStorage.removeItem("bgImageUrl"); }
+function updateTextColor(){ document.body.style.color = document.getElementById("textColor").value; localStorage.setItem("textColor", document.getElementById("textColor").value); }
+function toggleSettings(){ const panel = document.getElementById("settingsPanel"); panel.style.display = panel.style.display === "block" ? "none" : "block"; }
+function toggleBackgroundOnly(){ showingBackgroundOnly = !showingBackgroundOnly; document.getElementById("mainContent").style.display = showingBackgroundOnly ? "none" : "block"; document.querySelector(".settings-panel").style.display = "none";
+  document.querySelector(".back-button").style.display = showingBackgroundOnly ? "block" : "none"; }
+function showVideo(url){ const popup = document.getElementById("popup"); const frame = document.getElementById("videoFrame"); frame.src = url.includes("youtube") ? url.replace("watch?v=","embed/") : url; popup.style.display = "flex"; }
+document.getElementById("popup").onclick = function(){ this.style.display = "none"; document.getElementById("videoFrame").src = ""; }
+window.onload = function(){
+  const savedTitle = localStorage.getItem("pageTitle");
+  if(savedTitle) document.getElementById("pageTitle").textContent = savedTitle;
+  const savedColor = localStorage.getItem("textColor");
+  if(savedColor) document.body.style.color = savedColor;
+  const savedBg = localStorage.getItem("bgImage") || localStorage.getItem("bgImageUrl");
+  if(savedBg) document.body.style.backgroundImage = `url('${savedBg}')`;
+  renderTable();
+};
+</script>
 </body>
 </html>
