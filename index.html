@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🎶 歌のリスト</title>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Yomogi&display=swap" rel="stylesheet">
-  <link rel="manifest" href="manifest.json">
   <style>
     html, body {
       margin: 0;
@@ -83,12 +82,6 @@
       border-radius: 8px;
       z-index: 1001;
     }
-    .back-button {
-      position: fixed;
-      top: 10px;
-      right: 120px;
-      z-index: 1001;
-    }
     .settings-panel {
       position: fixed;
       bottom: 0;
@@ -135,16 +128,17 @@
 </head>
 <body>
   <h1 id="pageTitle">🎶 歌のリスト</h1>
-  <div class="background-toggle"><button onclick="toggleBackgroundOnly()">🖼 背景表示切替</button></div>
-  <div class="back-button" style="display:none"><button onclick="toggleBackgroundOnly()">🔙 戻る</button></div>
-  <div class="content" id="mainContent">
-    <!-- 曲リスト入力・表示部 -->
+  <div class="content">
     <input type="text" id="newTitle" placeholder="曲名">
     <input type="text" id="newArtist" placeholder="アーティスト名">
-    <input type="text" id="newURL" placeholder="動画URL（任意）">
+    <input type="text" id="newUrl" placeholder="動画URL (任意)">
     <button onclick="addSong()">追加</button>
     <table id="songTable">
-      <thead><tr><th>#</th><th onclick="sortBy('title')">曲名</th><th onclick="sortBy('artist')">アーティスト</th><th>操作</th></tr></thead>
+      <thead>
+        <tr>
+          <th>#</th><th>曲名</th><th>アーティスト</th><th>動画</th><th>JASRAC</th><th>操作</th>
+        </tr>
+      </thead>
       <tbody></tbody>
     </table>
     <div class="pagination">
@@ -153,80 +147,132 @@
       <button onclick="nextPage()">次へ ⏭</button>
     </div>
   </div>
-  <div class="settings-toggle"><button onclick="toggleSettings()">⚙️ 設定</button></div>
+  <div class="settings-toggle">
+    <button onclick="toggleSettings()">⚙️ 設定</button>
+  </div>
+  <div class="background-toggle">
+    <button onclick="toggleBackgroundOnly()">背景表示切替</button>
+  </div>
   <div class="settings-panel" id="settingsPanel">
     <div><label>ページタイトル：</label><input type="text" id="pageTitleInput" oninput="updateTitle()"></div>
-    <div><label>背景画像URL：</label><input type="text" id="bgUrlInput" oninput="updateBackground()"> またはアップロード：<input type="file" id="bgUpload" accept="image/*" onchange="uploadBackground()"><button onclick="resetBackground()">リセット</button></div>
-    <div><label>文字色：</label><input type="color" id="textColor" value="#000000" onchange="updateTextColor()"></div>
-    <div><label>曲リストのエクスポート：</label><button onclick="exportSongs()">📤 書き出す</button></div>
-    <div><label>曲リストのインポート：</label><input type="file" id="importFile" accept=".json"><button onclick="importSongs()">📥 読み込む</button></div>
+    <div><label>背景画像URL：</label><input type="text" id="bgUrlInput" oninput="updateBackground()"></div>
+    <div><label>文字色：</label><input type="color" id="textColor" value="#333" onchange="updateTextColor()"></div>
+    <div><label>曲リストエクスポート：</label><button onclick="exportSongs()">ファイルとして保存</button></div>
+    <div><label>曲リストインポート：</label><input type="file" id="importFile" style="display:none" onchange="importSongs(event)"><button onclick="document.getElementById('importFile').click()">ファイルから読み込む</button></div>
   </div>
   <div class="popup-overlay" id="popup">
-    <iframe id="videoFrame" allowfullscreen></iframe>
+    <iframe id="videoFrame"></iframe>
   </div>
-<script>
-let songs = JSON.parse(localStorage.getItem("songList") || "[]");
-let currentPage = 1, pageSize = 20, sortKey = '', sortAsc = true, showingBackgroundOnly = false;
-function renderTable(){
-  const tbody = document.querySelector("#songTable tbody");
-  tbody.innerHTML = "";
-  let arr = [...songs];
-  if(sortKey) arr.sort((a,b)=>(sortAsc?1:-1)*(a[sortKey]||'').localeCompare(b[sortKey]||''));
-  const start = (currentPage - 1) * pageSize;
-  const pageArr = arr.slice(start, start + pageSize);
-  pageArr.forEach((s,i)=>{
-    const tr = document.createElement("tr");
-    const urlButton = s.url ? `<button onclick="showVideo('${s.url}')">🎬 再生</button>` : '';
-    tr.innerHTML = `<td>${start+i+1}</td><td>${s.title}</td><td>${s.artist}</td><td><button onclick="editSong(${songs.indexOf(s)})">編集</button><button onclick="deleteSong(${songs.indexOf(s)})">削除</button> ${urlButton}</td>`;
-    tbody.appendChild(tr);
-  });
-  document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${Math.max(1, Math.ceil(songs.length / pageSize))}`;
-}
-function addSong(){
-  const title = document.getElementById("newTitle").value.trim();
-  const artist = document.getElementById("newArtist").value.trim();
-  const url = document.getElementById("newURL").value.trim();
-  if(!title || !artist) return alert("曲名とアーティスト名を入力してください。");
-  songs.push({ title, artist, url });
-  saveSongs();
-  document.getElementById("newTitle").value = "";
-  document.getElementById("newArtist").value = "";
-  document.getElementById("newURL").value = "";
-  renderTable();
-}
-function editSong(i){
-  const s = songs[i];
-  const title = prompt("曲名", s.title);
-  const artist = prompt("アーティスト", s.artist);
-  const url = prompt("動画URL", s.url || '');
-  if(title && artist){ songs[i] = { title, artist, url }; saveSongs(); renderTable(); }
-}
-function deleteSong(i){ if(confirm("削除しますか？")){ songs.splice(i,1); saveSongs(); renderTable(); } }
-function sortBy(key){ sortKey = key; sortAsc = !sortAsc; renderTable(); }
-function nextPage(){ if(currentPage < Math.ceil(songs.length / pageSize)){ currentPage++; renderTable(); window.scrollTo(0,0); } }
-function prevPage(){ if(currentPage > 1){ currentPage--; renderTable(); window.scrollTo(0,0); } }
-function saveSongs(){ localStorage.setItem("songList", JSON.stringify(songs)); }
-function exportSongs(){ const blob = new Blob([JSON.stringify(songs)], {type:"application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "songs.json"; a.click(); }
-function importSongs(){ const file = document.getElementById("importFile").files[0]; if(!file) return; const reader = new FileReader(); reader.onload = e => { try { songs = JSON.parse(e.target.result); saveSongs(); renderTable(); } catch(err) { alert("読み込みエラー"); } }; reader.readAsText(file); }
-function updateTitle(){ document.getElementById("pageTitle").textContent = document.getElementById("pageTitleInput").value || "🎶 歌のリスト"; }
-function updateBackground(){ const url = document.getElementById("bgUrlInput").value; document.body.style.backgroundImage = url ? `url('${url}')` : 'none'; localStorage.setItem("bgImageUrl", url); }
-function uploadBackground(){ const file = document.getElementById("bgUpload").files[0]; if(!file) return; const reader = new FileReader(); reader.onload = e => { document.body.style.backgroundImage = `url('${e.target.result}')`; localStorage.setItem("bgImage", e.target.result); }; reader.readAsDataURL(file); }
-function resetBackground(){ document.body.style.backgroundImage = 'none'; document.getElementById("bgUrlInput").value = ''; localStorage.removeItem("bgImage"); localStorage.removeItem("bgImageUrl"); }
-function updateTextColor(){ document.body.style.color = document.getElementById("textColor").value; localStorage.setItem("textColor", document.getElementById("textColor").value); }
-function toggleSettings(){ const panel = document.getElementById("settingsPanel"); panel.style.display = panel.style.display === "block" ? "none" : "block"; }
-function toggleBackgroundOnly(){ showingBackgroundOnly = !showingBackgroundOnly; document.getElementById("mainContent").style.display = showingBackgroundOnly ? "none" : "block"; document.querySelector(".settings-panel").style.display = "none";
-  document.querySelector(".back-button").style.display = showingBackgroundOnly ? "block" : "none"; }
-function showVideo(url){ const popup = document.getElementById("popup"); const frame = document.getElementById("videoFrame"); frame.src = url.includes("youtube") ? url.replace("watch?v=","embed/") : url; popup.style.display = "flex"; }
-document.getElementById("popup").onclick = function(){ this.style.display = "none"; document.getElementById("videoFrame").src = ""; }
-window.onload = function(){
-  const savedTitle = localStorage.getItem("pageTitle");
-  if(savedTitle) document.getElementById("pageTitle").textContent = savedTitle;
-  const savedColor = localStorage.getItem("textColor");
-  if(savedColor) document.body.style.color = savedColor;
-  const savedBg = localStorage.getItem("bgImage") || localStorage.getItem("bgImageUrl");
-  if(savedBg) document.body.style.backgroundImage = `url('${savedBg}')`;
-  renderTable();
-};
-</script>
+  <script>
+    const pageSize = 20;
+    let songs = JSON.parse(localStorage.getItem("songList") || "[]");
+    let currentPage = 1;
+    function renderTable() {
+      const tbody = document.querySelector("#songTable tbody");
+      tbody.innerHTML = "";
+      const start = (currentPage - 1) * pageSize;
+      const pageSongs = songs.slice(start, start + pageSize);
+      pageSongs.forEach((song, i) => {
+        const tr = document.createElement("tr");
+        const index = start + i + 1;
+        const videoBtn = song.url ? `<button onclick=\"openPopup('${song.url}')\">再生</button>` : "";
+        const jasracBtn = `<button onclick=\"window.open('https://www2.jasrac.or.jp/eJwid/main.jsp?trxID=F00100&IN_DEFAULT_SEARCH=${encodeURIComponent(song.title)}','_blank')\">🎵配信OK？</button>`;
+        tr.innerHTML = `<td>${index}</td><td>${song.title}</td><td>${song.artist}</td><td>${videoBtn}</td><td>${jasracBtn}</td><td><button onclick=\"editSong(${index - 1})\">編集</button><button onclick=\"deleteSong(${index - 1})\">削除</button></td>`;
+        tbody.appendChild(tr);
+      });
+      document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${Math.ceil(songs.length / pageSize)}`;
+    }
+    function addSong() {
+      const title = document.getElementById("newTitle").value.trim();
+      const artist = document.getElementById("newArtist").value.trim();
+      const url = document.getElementById("newUrl").value.trim();
+      if (!title || !artist) return alert("曲名とアーティスト名を入力してください");
+      songs.push({ title, artist, url });
+      saveSongs();
+      document.getElementById("newTitle").value = "";
+      document.getElementById("newArtist").value = "";
+      document.getElementById("newUrl").value = "";
+      renderTable();
+    }
+    function editSong(i) {
+      const song = songs[i];
+      const title = prompt("新しい曲名：", song.title);
+      const artist = prompt("新しいアーティスト名：", song.artist);
+      const url = prompt("新しい動画URL（任意）：", song.url || "");
+      if (title && artist) {
+        songs[i] = { title: title.trim(), artist: artist.trim(), url: url.trim() };
+        saveSongs();
+        renderTable();
+      }
+    }
+    function deleteSong(i) {
+      if (confirm("本当に削除しますか？")) {
+        songs.splice(i, 1);
+        saveSongs();
+        if (currentPage > Math.ceil(songs.length / pageSize)) currentPage = 1;
+        renderTable();
+      }
+    }
+    function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); scrollTo(0,0); } }
+    function nextPage() { if (currentPage < Math.ceil(songs.length / pageSize)) { currentPage++; renderTable(); scrollTo(0,0); } }
+    function toggleSettings() {
+      const panel = document.getElementById("settingsPanel");
+      panel.style.display = panel.style.display === "block" ? "none" : "block";
+    }
+    function toggleBackgroundOnly() {
+      const content = document.querySelector(".content");
+      content.style.display = content.style.display === "none" ? "block" : "none";
+    }
+    function updateTitle() {
+      document.getElementById("pageTitle").textContent = document.getElementById("pageTitleInput").value || "🎶 歌のリスト";
+    }
+    function updateBackground() {
+      const url = document.getElementById("bgUrlInput").value.trim();
+      document.body.style.backgroundImage = url ? `url('${url}')` : 'none';
+    }
+    function updateTextColor() {
+      document.body.style.color = document.getElementById("textColor").value;
+    }
+    function saveSongs() {
+      localStorage.setItem("songList", JSON.stringify(songs));
+    }
+    function exportSongs() {
+      const blob = new Blob([JSON.stringify(songs)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'songs.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    function importSongs(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        try {
+          songs = JSON.parse(evt.target.result);
+          saveSongs();
+          renderTable();
+        } catch(err) {
+          alert("ファイルの読み込みに失敗しました。");
+        }
+      };
+      reader.readAsText(file);
+    }
+    function openPopup(url) {
+      const popup = document.getElementById("popup");
+      const frame = document.getElementById("videoFrame");
+      frame.src = url;
+      popup.style.display = "flex";
+      popup.onclick = () => {
+        popup.style.display = "none";
+        frame.src = "";
+      }
+    }
+    window.onload = () => {
+      renderTable();
+    }
+  </script>
 </body>
 </html>
