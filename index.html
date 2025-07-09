@@ -42,11 +42,13 @@
       background: #f28ab2;
       color: white;
       border: none;
-      border-radius: 8px;
-      padding: 6px 12px;
+      border-radius: 20px;
+      padding: 6px 16px;
       margin: 4px;
       font-weight: bold;
+      font-family: 'Nunito', sans-serif;
       cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     button:hover {
       background: #ffb3c6;
@@ -69,19 +71,24 @@
       background-color: #ffe6ec;
       cursor: pointer;
     }
-    .settings-toggle {
+    .settings-toggle, .background-toggle, #backgroundBackButton {
       position: fixed;
-      bottom: 10px;
-      right: 10px;
       z-index: 1000;
     }
+    .settings-toggle {
+      bottom: 10px;
+      right: 10px;
+    }
     .background-toggle {
-      position: fixed;
       top: 10px;
       right: 10px;
       background: #ffe6ec;
       border-radius: 8px;
-      z-index: 1001;
+    }
+    #backgroundBackButton {
+      top: 10px;
+      left: 10px;
+      display: none;
     }
     .settings-panel {
       position: fixed;
@@ -114,6 +121,16 @@
       border: none;
       background: #000;
     }
+    .background-only .content,
+    .background-only h1,
+    .background-only .settings-toggle,
+    .background-only .background-toggle,
+    .background-only .settings-panel {
+      display: none;
+    }
+    .background-only #backgroundBackButton {
+      display: block !important;
+    }
     @media(max-width:600px) {
       body, .settings-panel {
         font-size: 12px;
@@ -125,18 +142,13 @@
         font-size: 11px;
       }
     }
-.background-only .content,
-.background-only .settings-toggle,
-.background-only .background-toggle,
-.background-only #settingsPanel,
-.background-only h1 {
-  display: none !important;
-}
-
   </style>
 </head>
 <body>
   <button class="background-toggle" onclick="toggleBackgroundOnly(event)">🖼️ 背景表示切替</button>
+  <div id="backgroundBackButton">
+    <button onclick="toggleBackgroundOnly(event)">🔙 戻る</button>
+  </div>
   <h1 id="pageTitle">🎶 歌のリスト</h1>
   <div class="content">
     <input type="text" id="newTitle" placeholder="曲名">
@@ -182,11 +194,12 @@
     </div>
     <div>
       <label>曲リストのエクスポート：</label>
-      <button onclick="exportSongs()">📤</button>
+      <button onclick="exportSongs()">📤 書き出す</button>
     </div>
     <div>
       <label>曲リストのインポート：</label>
-      <input type="file" id="importFile" accept=".json" onchange="importSongs(event)"> 📥
+      <label for="importFile" style="cursor:pointer; font-weight:bold;">📥 読み込む</label>
+      <input type="file" id="importFile" accept=".json" onchange="importSongs(event)" style="display:none;">
     </div>
   </div>
   <div class="popup-overlay" id="popup">
@@ -209,8 +222,8 @@
       const pageArr = arr.slice(start, start + pageSize);
       pageArr.forEach((song, i) => {
         const tr = document.createElement("tr");
-        const videoButton = song.url ? `<button onclick=\"showVideo('${song.url}')\">▶再生</button>` : "";
-        tr.innerHTML = `<td>${start + i + 1}</td><td>${song.title}</td><td>${song.artist}</td><td>${videoButton}</td><td><button onclick=\"editSong(${songs.indexOf(song)})\">編集</button><button onclick=\"deleteSong(${songs.indexOf(song)})\">削除</button></td>`;
+        const videoButton = song.url ? `<button onclick="showVideo('${song.url}')">▶再生</button>` : "";
+        tr.innerHTML = `<td>${start + i + 1}</td><td>${song.title}</td><td>${song.artist}</td><td>${videoButton}</td><td><button onclick="editSong(${songs.indexOf(song)})">編集</button><button onclick="deleteSong(${songs.indexOf(song)})">削除</button></td>`;
         tbody.appendChild(tr);
       });
       document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${Math.max(Math.ceil(songs.length / pageSize), 1)}`;
@@ -280,11 +293,14 @@
 
     function toggleBackgroundOnly(e) {
       e.stopPropagation();
-      document.body.classList.toggle("background-only");
+      const isNowBackgroundOnly = document.body.classList.toggle("background-only");
+      document.getElementById("backgroundBackButton").style.display = isNowBackgroundOnly ? "block" : "none";
     }
 
     function updateTitle() {
-      document.getElementById("pageTitle").textContent = document.getElementById("pageTitleInput").value || "🎶 歌のリスト";
+      const title = document.getElementById("pageTitleInput").value || "🎶 歌のリスト";
+      document.getElementById("pageTitle").textContent = title;
+      localStorage.setItem("pageTitle", title);
     }
 
     function updateBackground() {
@@ -310,7 +326,9 @@
     }
 
     function updateTextColor() {
-      document.body.style.color = document.getElementById("textColor").value;
+      const color = document.getElementById("textColor").value;
+      document.body.style.color = color;
+      localStorage.setItem("textColor", color);
     }
 
     function exportSongs() {
