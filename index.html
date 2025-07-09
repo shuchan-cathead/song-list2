@@ -4,37 +4,53 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🎶 歌のリスト</title>
-  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet">
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Nunito', sans-serif;
       background-attachment: fixed;
       background-size: cover;
       background-position: center;
-      transition: background-image 0.3s ease, background-color 0.3s ease;
-      color: #000;
-      font-family: sans-serif;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+      background-color: rgba(255,255,255,0.9);
+      transition: background-image 0.3s ease;
+      color: #333;
     }
     h1 {
       margin: 10px;
+      font-weight: bold;
     }
     .content {
-      flex: 1;
-      overflow-y: auto;
       padding: 10px;
-      background-color: rgba(255,255,255,0.9);
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+    input[type="text"] {
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin: 4px;
+    }
+    button {
+      background: #f28ab2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      margin: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #ffb3c6;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
+      background-color: rgba(255,255,255,0.95);
+      border-radius: 10px;
+      overflow: hidden;
     }
     th, td {
       border: 1px solid #ccc;
@@ -42,12 +58,8 @@
       text-align: left;
     }
     th {
-      background-color: #f0f0f0;
+      background-color: #ffe6ec;
       cursor: pointer;
-    }
-    .pagination {
-      text-align: center;
-      margin: 10px 0;
     }
     .settings-toggle {
       position: fixed;
@@ -62,15 +74,14 @@
       width: 100%;
       background: rgba(255, 255, 255, 0.95);
       padding: 10px;
-      border-top: 1px solid #ccc;
+      border-top: 2px solid #f28ab2;
       display: none;
       font-size: 14px;
       z-index: 999;
     }
-    .settings-panel input[type="text"],
-    .settings-panel input[type="color"],
-    .settings-panel input[type="file"] {
-      margin: 5px;
+    .pagination {
+      text-align: center;
+      margin: 10px;
     }
     .popup-overlay {
       display: none;
@@ -87,24 +98,6 @@
       border: none;
       background: #000;
     }
-    .fade-in {
-      animation: fadeIn 0.4s ease-in-out;
-    }
-    .fade-out {
-      animation: fadeOut 0.4s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to { opacity: 0; }
-    }
-    @media(max-width:600px) {
-      body, .settings-panel { font-size: 12px; }
-      table, th, td { font-size: 12px; }
-    }
   </style>
 </head>
 <body>
@@ -114,6 +107,7 @@
     <input type="text" id="newArtist" placeholder="アーティスト名">
     <input type="text" id="newVideo" placeholder="動画URL（省略可）">
     <button onclick="addSong()">追加</button>
+
     <table>
       <thead>
         <tr>
@@ -126,6 +120,7 @@
       </thead>
       <tbody id="songTable"></tbody>
     </table>
+
     <div class="pagination">
       <button onclick="prevPage()">⏮ 前へ</button>
       <span id="pageInfo"></span>
@@ -150,12 +145,12 @@
     </div>
     <div>
       <label>文字色：</label>
-      <input type="color" id="textColor" value="#000000" onchange="updateTextColor()">
+      <input type="color" id="textColor" value="#333333" onchange="updateTextColor()">
     </div>
     <div>
-      <button onclick="exportSongs()">曲リストのエクスポート（ファイルとして保存）</button>
-      <input type="file" id="importFile" onchange="importSongs()" style="display:inline;">
-      <label for="importFile"><u>曲リストのインポート（ファイルから読み込む）</u></label>
+      <button onclick="exportSongs()">📤 曲リストのエクスポート</button>
+      <button onclick="document.getElementById('importFile').click()">📥 曲リストのインポート</button>
+      <input type="file" id="importFile" style="display:none" onchange="importSongs()">
     </div>
   </div>
 
@@ -164,172 +159,132 @@
   </div>
 
 <script>
-  const pageSize = 20;
-  let songs = JSON.parse(localStorage.getItem("songList") || "[]");
-  let currentPage = 1, sortKey = null, sortAsc = true;
+let songs = JSON.parse(localStorage.getItem("songList") || "[]");
+let currentPage = 1, pageSize = 20, sortKey = null, sortAsc = true;
 
-  function renderTable() {
-    const tbody = document.getElementById("songTable");
-    tbody.innerHTML = "";
-    const sorted = [...songs];
-    if (sortKey) {
-      sorted.sort((a, b) => sortAsc ? (a[sortKey] || '').localeCompare(b[sortKey] || '') : (b[sortKey] || '').localeCompare(a[sortKey] || ''));
-    }
-    const start = (currentPage - 1) * pageSize;
-    const pageItems = sorted.slice(start, start + pageSize);
-    pageItems.forEach((song, i) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${start + i + 1}</td>
-        <td>${song.title}</td>
-        <td>${song.artist}</td>
-        <td>${song.video ? `<button onclick="playVideo('${song.video}')">再生</button>` : ''}</td>
-        <td><button onclick="editSong(${songs.indexOf(song)})">編集</button><button onclick="deleteSong(${songs.indexOf(song)})">削除</button></td>
-      `;
-      tbody.appendChild(tr);
-    });
-    document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${Math.max(Math.ceil(songs.length / pageSize), 1)}`;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+function renderTable() {
+  const tbody = document.getElementById("songTable");
+  tbody.innerHTML = "";
+  const sorted = [...songs];
+  if (sortKey) {
+    sorted.sort((a,b) => sortAsc ? (a[sortKey]||'').localeCompare(b[sortKey]||'') : (b[sortKey]||'').localeCompare(a[sortKey]||''));
   }
+  const start = (currentPage - 1) * pageSize;
+  sorted.slice(start, start + pageSize).forEach((song, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${start+i+1}</td><td>${song.title}</td><td>${song.artist}</td>
+      <td>${song.video ? `<button onclick=\"playVideo('${song.video}')\">再生</button>` : ''}</td>
+      <td><button onclick=\"editSong(${songs.indexOf(song)})\">編集</button>
+          <button onclick=\"deleteSong(${songs.indexOf(song)})\">削除</button></td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("pageInfo").textContent = `ページ ${currentPage} / ${Math.ceil(songs.length / pageSize)}`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-  function addSong() {
-    const t = document.getElementById("newTitle").value.trim();
-    const a = document.getElementById("newArtist").value.trim();
-    const v = document.getElementById("newVideo").value.trim();
-    if (!t || !a) return alert("曲名とアーティスト名を入力してください");
-    songs.push({ title: t, artist: a, video: v });
-    saveSongs();
-    document.getElementById("newTitle").value = "";
-    document.getElementById("newArtist").value = "";
-    document.getElementById("newVideo").value = "";
-    renderTable();
-  }
-
-  function editSong(i) {
-    const s = songs[i];
-    const t = prompt("曲名", s.title);
-    const a = prompt("アーティスト", s.artist);
-    const v = prompt("動画URL", s.video || "");
-    if (t && a) {
-      songs[i] = { title: t.trim(), artist: a.trim(), video: v.trim() };
-      saveSongs(); renderTable();
-    }
-  }
-
-  function deleteSong(i) {
-    if (confirm("削除しますか？")) {
-      songs.splice(i, 1);
-      saveSongs();
-      if (currentPage > Math.ceil(songs.length / pageSize)) currentPage--;
-      renderTable();
-    }
-  }
-
-  function sortBy(key) {
-    if (sortKey === key) sortAsc = !sortAsc;
-    else { sortKey = key; sortAsc = true; }
-    renderTable();
-  }
-
-  function nextPage() { if (currentPage < Math.ceil(songs.length / pageSize)) { currentPage++; renderTable(); } }
-  function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
-
-  function playVideo(url) {
-    const frame = document.getElementById("videoFrame");
-    const popup = document.getElementById("popupOverlay");
-    const embed = url.includes("youtube.com") || url.includes("youtu.be")
-      ? url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")
-      : url;
-    frame.src = embed;
-    popup.style.display = "flex";
-  }
-
-  function closePopup() {
-    document.getElementById("popupOverlay").style.display = "none";
-    document.getElementById("videoFrame").src = "";
-  }
-
-  function toggleSettings() {
-    const p = document.getElementById("settingsPanel");
-    p.style.display = (p.style.display === "block" ? "none" : "block");
-  }
-
-  function updateTitle() {
-    const newTitle = document.getElementById("pageTitleInput").value;
-    document.getElementById("pageTitle").textContent = newTitle || "🎶 歌のリスト";
-    localStorage.setItem("pageTitle", newTitle);
-  }
-
-  function updateBackground() {
-    const url = document.getElementById("bgUrlInput").value.trim();
-    document.body.style.backgroundImage = url ? `url('${url}')` : "none";
-    localStorage.setItem("bgUrl", url);
-  }
-
-  function uploadBackground() {
-    const file = document.getElementById("bgUpload").files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        document.body.style.backgroundImage = `url('${e.target.result}')`;
-        localStorage.setItem("bgImage", e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  function resetBackground() {
-    document.body.style.backgroundImage = "none";
-    document.getElementById("bgUrlInput").value = "";
-    localStorage.removeItem("bgUrl");
-    localStorage.removeItem("bgImage");
-  }
-
-  function updateTextColor() {
-    const c = document.getElementById("textColor").value;
-    document.body.style.color = c;
-    localStorage.setItem("textColor", c);
-  }
-
-  function saveSongs() {
-    localStorage.setItem("songList", JSON.stringify(songs));
-  }
-
-  function exportSongs() {
-    const blob = new Blob([JSON.stringify(songs)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "song_list.json";
-    a.click();
-  }
-
-  function importSongs() {
-    const file = document.getElementById("importFile").files[0];
-    if (!file) return;
+function addSong() {
+  const t = document.getElementById("newTitle").value.trim();
+  const a = document.getElementById("newArtist").value.trim();
+  const v = document.getElementById("newVideo").value.trim();
+  if (!t || !a) return alert("曲名とアーティスト名を入力してください");
+  songs.push({ title: t, artist: a, video: v });
+  saveSongs();
+  document.getElementById("newTitle").value = "";
+  document.getElementById("newArtist").value = "";
+  document.getElementById("newVideo").value = "";
+  renderTable();
+}
+function editSong(i) {
+  const s = songs[i];
+  const t = prompt("曲名", s.title);
+  const a = prompt("アーティスト", s.artist);
+  const v = prompt("動画URL", s.video || "");
+  if (t && a) { songs[i] = { title: t, artist: a, video: v }; saveSongs(); renderTable(); }
+}
+function deleteSong(i) {
+  if (confirm("削除しますか？")) { songs.splice(i, 1); saveSongs(); renderTable(); }
+}
+function sortBy(key) {
+  sortKey = key; sortAsc = !sortAsc; renderTable();
+}
+function prevPage() { if (currentPage > 1) { currentPage--; renderTable(); } }
+function nextPage() { if (currentPage < Math.ceil(songs.length / pageSize)) { currentPage++; renderTable(); } }
+function playVideo(url) {
+  document.getElementById("videoFrame").src = url.includes("youtube") ? url.replace("watch?v=", "embed/") : url;
+  document.getElementById("popupOverlay").style.display = "flex";
+}
+function closePopup() {
+  document.getElementById("popupOverlay").style.display = "none";
+  document.getElementById("videoFrame").src = "";
+}
+function toggleSettings() {
+  const panel = document.getElementById("settingsPanel");
+  panel.style.display = panel.style.display === "block" ? "none" : "block";
+}
+function updateTitle() {
+  const val = document.getElementById("pageTitleInput").value;
+  document.getElementById("pageTitle").textContent = val || "🎶 歌のリスト";
+  localStorage.setItem("pageTitle", val);
+}
+function updateBackground() {
+  const val = document.getElementById("bgUrlInput").value.trim();
+  document.body.style.backgroundImage = val ? `url('${val}')` : "none";
+  localStorage.setItem("bgUrl", val);
+}
+function uploadBackground() {
+  const file = document.getElementById("bgUpload").files[0];
+  if (file) {
     const reader = new FileReader();
-    reader.onload = function(e) {
-      try {
-        songs = JSON.parse(e.target.result);
-        saveSongs(); currentPage = 1; renderTable();
-      } catch (err) {
-        alert("ファイルの読み込みに失敗しました。");
-      }
+    reader.onload = e => {
+      document.body.style.backgroundImage = `url('${e.target.result}')`;
+      localStorage.setItem("bgImage", e.target.result);
     };
-    reader.readAsText(file);
+    reader.readAsDataURL(file);
   }
-
-  window.onload = () => {
-    document.getElementById("pageTitleInput").value = localStorage.getItem("pageTitle") || "";
-    updateTitle();
-    document.getElementById("bgUrlInput").value = localStorage.getItem("bgUrl") || "";
-    updateBackground();
-    const img = localStorage.getItem("bgImage");
-    if (img) document.body.style.backgroundImage = `url('${img}')`;
-    document.getElementById("textColor").value = localStorage.getItem("textColor") || "#000000";
-    updateTextColor();
-    renderTable();
+}
+function resetBackground() {
+  document.body.style.backgroundImage = "none";
+  document.getElementById("bgUrlInput").value = "";
+  localStorage.removeItem("bgUrl");
+  localStorage.removeItem("bgImage");
+}
+function updateTextColor() {
+  const c = document.getElementById("textColor").value;
+  document.body.style.color = c;
+  localStorage.setItem("textColor", c);
+}
+function saveSongs() { localStorage.setItem("songList", JSON.stringify(songs)); }
+function exportSongs() {
+  const blob = new Blob([JSON.stringify(songs)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "song_list.json";
+  a.click();
+}
+function importSongs() {
+  const file = document.getElementById("importFile").files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      songs = JSON.parse(e.target.result);
+      saveSongs(); renderTable();
+    } catch { alert("読み込み失敗"); }
   };
+  reader.readAsText(file);
+}
+window.onload = () => {
+  document.getElementById("pageTitleInput").value = localStorage.getItem("pageTitle") || "";
+  updateTitle();
+  const img = localStorage.getItem("bgImage");
+  if (img) document.body.style.backgroundImage = `url('${img}')`;
+  document.getElementById("bgUrlInput").value = localStorage.getItem("bgUrl") || "";
+  updateBackground();
+  document.getElementById("textColor").value = localStorage.getItem("textColor") || "#333333";
+  updateTextColor();
+  renderTable();
+};
 </script>
 </body>
 </html>
