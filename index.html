@@ -526,41 +526,42 @@
       overlay.style.display = "none";
     }
 
-    window.onload = () => {
-      // 背景画像復元
-      const bgUrl = localStorage.getItem("backgroundImage");
-      const bgFile = localStorage.getItem("backgroundFile");
-      if (bgUrl) {
-        document.body.style.backgroundImage = `url('${bgUrl}')`;
-        document.getElementById("bgUrlInput").value = bgUrl;
-      } else if (bgFile) {
-        document.body.style.backgroundImage = `url('${bgFile}')`;
-      }
-      
-    // ページタイトル復元
-    const savedTitle = localStorage.getItem("pageTitle");
-    if (savedTitle) {
-      document.getElementById("pageTitle").textContent = savedTitle;
-      document.getElementById("pageTitleInput").value = savedTitle;
-    }
-
-    // タイトルサイズ復元
-    const savedSize = localStorage.getItem("titleFontSize");
-    if (savedSize) {
-      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
-      document.getElementById("titleSize").value = savedSize;
-    }
-
-    // 文字色復元
-    const savedColor = localStorage.getItem("textColor");
-    if (savedColor) {
-      document.body.style.color = savedColor;
-      document.getElementById("textColor").value = savedColor;
-    }
-
-    renderTable();
     
-    };
+window.onload = () => {
+  // 背景画像復元
+  const bgUrl = localStorage.getItem("backgroundImage");
+  const bgFile = localStorage.getItem("backgroundFile");
+  if (bgUrl) {
+    document.body.style.backgroundImage = `url('${bgUrl}')`;
+    document.getElementById("bgUrlInput").value = bgUrl;
+  } else if (bgFile) {
+    document.body.style.backgroundImage = `url('${bgFile}')`;
+  }
+
+  // ページタイトル復元
+  const savedTitle = localStorage.getItem("pageTitle");
+  if (savedTitle) {
+    document.getElementById("pageTitle").textContent = savedTitle;
+    document.getElementById("pageTitleInput").value = savedTitle;
+  }
+
+  // タイトルサイズ復元
+  const savedSize = localStorage.getItem("titleFontSize");
+  if (savedSize) {
+    document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+    document.getElementById("titleSize").value = savedSize;
+  }
+
+  // 文字色復元
+  const savedColor = localStorage.getItem("textColor");
+  if (savedColor) {
+    document.body.style.color = savedColor;
+    document.getElementById("textColor").value = savedColor;
+  }
+
+  renderTable();
+};
+
   </script>
 </body>
 </html>
