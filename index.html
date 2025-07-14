@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>🎶 冬勝が歌える曲リスト</title>
+  <title>🎶 冬勝が歌える曲のリスト</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Yomogi&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -134,7 +134,7 @@
     <button onclick="window.open('https://search.nex-tone.co.jp/terms?2', '_blank')">🔍 Nextone検索</button>
   </div>
 
-  <h1 id="pageTitle">🎶 冬勝が歌える曲リスト</h1>
+  <h1 id="pageTitle">🎶 冬勝が歌える曲のリスト</h1>
   <div class="content" id="content">
     <input type="text" id="newTitle" placeholder="曲名">
     <input type="text" id="newArtist" placeholder="アーティスト名">
@@ -222,7 +222,30 @@
       document.getElementById("newTitle").value = "";
       document.getElementById("newArtist").value = "";
       document.getElementById("newUrl").value = "";
-      renderTable();
+      
+    // ページタイトル復元
+    const savedTitle = localStorage.getItem("pageTitle");
+    if (savedTitle) {
+      document.getElementById("pageTitle").textContent = savedTitle;
+      document.getElementById("pageTitleInput").value = savedTitle;
+    }
+
+    // タイトルサイズ復元
+    const savedSize = localStorage.getItem("titleFontSize");
+    if (savedSize) {
+      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+      document.getElementById("titleSize").value = savedSize;
+    }
+
+    // 文字色復元
+    const savedColor = localStorage.getItem("textColor");
+    if (savedColor) {
+      document.body.style.color = savedColor;
+      document.getElementById("textColor").value = savedColor;
+    }
+
+    renderTable();
+    
     }
 
     function editSong(index) {
@@ -232,14 +255,60 @@
       const url = prompt("動画URL：", song.url || "");
       if (title && artist) {
         songs[index] = {title: title.trim(), artist: artist.trim(), url: url.trim()};
-        saveSongs(); renderTable();
+        saveSongs(); 
+    // ページタイトル復元
+    const savedTitle = localStorage.getItem("pageTitle");
+    if (savedTitle) {
+      document.getElementById("pageTitle").textContent = savedTitle;
+      document.getElementById("pageTitleInput").value = savedTitle;
+    }
+
+    // タイトルサイズ復元
+    const savedSize = localStorage.getItem("titleFontSize");
+    if (savedSize) {
+      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+      document.getElementById("titleSize").value = savedSize;
+    }
+
+    // 文字色復元
+    const savedColor = localStorage.getItem("textColor");
+    if (savedColor) {
+      document.body.style.color = savedColor;
+      document.getElementById("textColor").value = savedColor;
+    }
+
+    renderTable();
+    
       }
     }
 
     function deleteSong(index) {
       if (confirm("本当に削除しますか？")) {
         songs.splice(index, 1);
-        saveSongs(); renderTable();
+        saveSongs(); 
+    // ページタイトル復元
+    const savedTitle = localStorage.getItem("pageTitle");
+    if (savedTitle) {
+      document.getElementById("pageTitle").textContent = savedTitle;
+      document.getElementById("pageTitleInput").value = savedTitle;
+    }
+
+    // タイトルサイズ復元
+    const savedSize = localStorage.getItem("titleFontSize");
+    if (savedSize) {
+      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+      document.getElementById("titleSize").value = savedSize;
+    }
+
+    // 文字色復元
+    const savedColor = localStorage.getItem("textColor");
+    if (savedColor) {
+      document.body.style.color = savedColor;
+      document.getElementById("textColor").value = savedColor;
+    }
+
+    renderTable();
+    
       }
     }
 
@@ -250,18 +319,87 @@
     function sortBy(key) {
       sortAsc = sortKey === key ? !sortAsc : true;
       sortKey = key;
-      renderTable();
+      
+    // ページタイトル復元
+    const savedTitle = localStorage.getItem("pageTitle");
+    if (savedTitle) {
+      document.getElementById("pageTitle").textContent = savedTitle;
+      document.getElementById("pageTitleInput").value = savedTitle;
+    }
+
+    // タイトルサイズ復元
+    const savedSize = localStorage.getItem("titleFontSize");
+    if (savedSize) {
+      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+      document.getElementById("titleSize").value = savedSize;
+    }
+
+    // 文字色復元
+    const savedColor = localStorage.getItem("textColor");
+    if (savedColor) {
+      document.body.style.color = savedColor;
+      document.getElementById("textColor").value = savedColor;
+    }
+
+    renderTable();
+    
     }
 
     function nextPage() {
       if (currentPage < Math.ceil(songs.length/pageSize)) {
-        currentPage++; renderTable();
+        currentPage++; 
+    // ページタイトル復元
+    const savedTitle = localStorage.getItem("pageTitle");
+    if (savedTitle) {
+      document.getElementById("pageTitle").textContent = savedTitle;
+      document.getElementById("pageTitleInput").value = savedTitle;
+    }
+
+    // タイトルサイズ復元
+    const savedSize = localStorage.getItem("titleFontSize");
+    if (savedSize) {
+      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+      document.getElementById("titleSize").value = savedSize;
+    }
+
+    // 文字色復元
+    const savedColor = localStorage.getItem("textColor");
+    if (savedColor) {
+      document.body.style.color = savedColor;
+      document.getElementById("textColor").value = savedColor;
+    }
+
+    renderTable();
+    
       }
     }
 
     function prevPage() {
       if (currentPage > 1) {
-        currentPage--; renderTable();
+        currentPage--; 
+    // ページタイトル復元
+    const savedTitle = localStorage.getItem("pageTitle");
+    if (savedTitle) {
+      document.getElementById("pageTitle").textContent = savedTitle;
+      document.getElementById("pageTitleInput").value = savedTitle;
+    }
+
+    // タイトルサイズ復元
+    const savedSize = localStorage.getItem("titleFontSize");
+    if (savedSize) {
+      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+      document.getElementById("titleSize").value = savedSize;
+    }
+
+    // 文字色復元
+    const savedColor = localStorage.getItem("textColor");
+    if (savedColor) {
+      document.body.style.color = savedColor;
+      document.getElementById("textColor").value = savedColor;
+    }
+
+    renderTable();
+    
       }
     }
 
@@ -276,14 +414,26 @@
     }
 
     function updateTitle() {
-      document.getElementById("pageTitle").textContent = document.getElementById("pageTitleInput").value || "🎶 冬勝が歌える曲リスト";
+    const title = document.getElementById("pageTitleInput").value || "🎶 歌のリスト";
+    document.getElementById("pageTitle").textContent = title;
+    localStorage.setItem("pageTitle", title);
+
+      document.getElementById("pageTitle").textContent = document.getElementById("pageTitleInput").value || "🎶 歌のリスト";
     }
 
     function updateTitleSize() {
+    const size = document.getElementById("titleSize").value;
+    document.documentElement.style.setProperty("--title-font-size", size + "em");
+    localStorage.setItem("titleFontSize", size);
+
       document.documentElement.style.setProperty("--title-font-size", document.getElementById("titleSize").value + "em");
     }
 
     function updateTextColor() {
+    const color = document.getElementById("textColor").value;
+    document.body.style.color = color;
+    localStorage.setItem("textColor", color);
+
       document.body.style.color = document.getElementById("textColor").value;
     }
 
@@ -331,7 +481,30 @@
       reader.onload = evt => {
         try {
           songs = JSON.parse(evt.target.result);
-          saveSongs(); renderTable();
+          saveSongs(); 
+    // ページタイトル復元
+    const savedTitle = localStorage.getItem("pageTitle");
+    if (savedTitle) {
+      document.getElementById("pageTitle").textContent = savedTitle;
+      document.getElementById("pageTitleInput").value = savedTitle;
+    }
+
+    // タイトルサイズ復元
+    const savedSize = localStorage.getItem("titleFontSize");
+    if (savedSize) {
+      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+      document.getElementById("titleSize").value = savedSize;
+    }
+
+    // 文字色復元
+    const savedColor = localStorage.getItem("textColor");
+    if (savedColor) {
+      document.body.style.color = savedColor;
+      document.getElementById("textColor").value = savedColor;
+    }
+
+    renderTable();
+    
         } catch (err) {
           alert("読み込みエラー");
         }
@@ -363,7 +536,30 @@
       } else if (bgFile) {
         document.body.style.backgroundImage = `url('${bgFile}')`;
       }
-      renderTable();
+      
+    // ページタイトル復元
+    const savedTitle = localStorage.getItem("pageTitle");
+    if (savedTitle) {
+      document.getElementById("pageTitle").textContent = savedTitle;
+      document.getElementById("pageTitleInput").value = savedTitle;
+    }
+
+    // タイトルサイズ復元
+    const savedSize = localStorage.getItem("titleFontSize");
+    if (savedSize) {
+      document.documentElement.style.setProperty("--title-font-size", savedSize + "em");
+      document.getElementById("titleSize").value = savedSize;
+    }
+
+    // 文字色復元
+    const savedColor = localStorage.getItem("textColor");
+    if (savedColor) {
+      document.body.style.color = savedColor;
+      document.getElementById("textColor").value = savedColor;
+    }
+
+    renderTable();
+    
     };
   </script>
 </body>
