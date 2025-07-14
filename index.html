@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>🎶 歌のリスト</title>
+  <title>🎶 冬勝が歌える曲リスト</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Yomogi&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -134,7 +134,7 @@
     <button onclick="window.open('https://search.nex-tone.co.jp/terms?2', '_blank')">🔍 Nextone検索</button>
   </div>
 
-  <h1 id="pageTitle">🎶 歌のリスト</h1>
+  <h1 id="pageTitle">🎶 冬勝が歌える曲リスト</h1>
   <div class="content" id="content">
     <input type="text" id="newTitle" placeholder="曲名">
     <input type="text" id="newArtist" placeholder="アーティスト名">
@@ -289,7 +289,11 @@
 
     function updateBackground() {
       const url = document.getElementById("bgUrlInput").value;
-      document.body.style.backgroundImage = url ? `url('${url}')` : "none";
+      if (url) {
+        document.body.style.backgroundImage = `url('${url}')`;
+        localStorage.setItem("backgroundImage", url);
+        localStorage.removeItem("backgroundFile");
+      }
     }
 
     function uploadBackground() {
@@ -297,7 +301,10 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = e => {
-        document.body.style.backgroundImage = `url('${e.target.result}')`;
+        const dataUrl = e.target.result;
+        document.body.style.backgroundImage = `url('${dataUrl}')`;
+        localStorage.setItem("backgroundFile", dataUrl);
+        localStorage.removeItem("backgroundImage");
       };
       reader.readAsDataURL(file);
     }
@@ -305,6 +312,8 @@
     function resetBackground() {
       document.getElementById("bgUrlInput").value = "";
       document.body.style.backgroundImage = "none";
+      localStorage.removeItem("backgroundImage");
+      localStorage.removeItem("backgroundFile");
     }
 
     function exportSongs() {
@@ -333,7 +342,7 @@
     function playVideo(url) {
       const overlay = document.getElementById("popupOverlay");
       const frame = document.getElementById("videoFrame");
-      frame.src = url.replace("watch?v=", "embed/"); // YouTube形式変換
+      frame.src = url.replace("watch?v=", "embed/");
       overlay.style.display = "flex";
     }
 
@@ -345,6 +354,15 @@
     }
 
     window.onload = () => {
+      // 背景画像復元
+      const bgUrl = localStorage.getItem("backgroundImage");
+      const bgFile = localStorage.getItem("backgroundFile");
+      if (bgUrl) {
+        document.body.style.backgroundImage = `url('${bgUrl}')`;
+        document.getElementById("bgUrlInput").value = bgUrl;
+      } else if (bgFile) {
+        document.body.style.backgroundImage = `url('${bgFile}')`;
+      }
       renderTable();
     };
   </script>
